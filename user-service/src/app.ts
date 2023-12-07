@@ -1,67 +1,28 @@
-import express, { Express } from 'express';
-import morgan from 'morgan';
-import helmet from 'helmet';
-import cors from 'cors';
-import swaggerUi from 'swagger-ui-express';
-import { ValidateError } from 'tsoa';
-import { RegisterRoutes } from '../tsoa/routes';
-import '@database';
+import "dotenv/config";
+import express from "express";
+import "express-async-errors";
+import { AppDataSource } from "./data-source";
+import { handleErrorMiddleware } from "./middleware/handleError.middleware";
+import routes from "./routers/users.routes";
 
-const app: Express = express();
+const app = express();
 
-/************************************************************************************
- *                              Basic Express Middlewares
- ***********************************************************************************/
-
-app.set('json spaces', 4);
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use("/users", routes);
+app.use(handleErrorMiddleware);
 
-// Handle logs in console during development
-if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-  app.use(cors());
-}
+const port = process.env.APP_PORT || 3000;
 
-// Handle security and origin in production
-if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'production') {
-  app.use(helmet());
-}
+app.listen(port, () => {
+  console.log(`Server running at port: ${port}`);
 
-/************************************************************************************
- *                               Register all routes
- ***********************************************************************************/
-
-RegisterRoutes(app);
-
-app.use("/docs", swaggerUi.serve, async (req: express.Request, res: express.Response) => {
-  return res.send(swaggerUi.generateHTML(await import("../tsoa/swagger.json")));
-});
-
-/************************************************************************************
- *                               Express Error Handling
- ***********************************************************************************/
-
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  if (err instanceof ValidateError) {
-    console.error(`Caught Validation Error for ${req.path}:`, err.fields);
-    return res.status(422).json({
-      message: "Validation Failed",
-      details: err?.fields,
+  AppDataSource.initialize()
+    .then(() => {
+      console.log("Data Source has been initialized!");
+    })
+    .catch((err) => {
+      console.error("Error during Data Source initialization", err);
     });
-  }
-  if (err instanceof Error) {
-    return res.status(500).json({
-      errorName: err.name,
-      message: err.message,
-      stack: err.stack || 'no stack defined'
-    });
-  }
-  next();
-});
-
-app.use(function notFoundHandler(_req, res: express.Response) {
-  return res.status(404).send({ message: "Not Found" });
 });
 
 export default app;
