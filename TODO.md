@@ -35,3 +35,9 @@
 - Database Connection: Efficacy in connecting API to SQLite database
 - Proxy Functionality: Successful data forwarding from Python to Express API
 - Integration: Successful data fetch from Express API to Django server
+
+## Limitation
+- hard-code env and database
+- Not containerized the application
+- Not checking health-check per service dependencies
+- README can be more detailed
